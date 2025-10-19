@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CME Underwriter Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0056b3;
+            --primary-dark: #004085;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+            --light: #f8f9fa;
+            --dark: #343a40;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .logo p {
+            opacity: 0.9;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 10px;
+        }
+
+        /* Filters */
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 0.9em;
+            color: #666;
+            font-weight: 500;
+        }
+
+        select, input[type="text"], input[type="date"] {
+            padding: 10px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Submissions Table */
+        .submissions-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 20px;
+            border-bottom: 2px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .submissions-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .submissions-table thead {
+            background: var(--light);
+        }
+
+        .submissions-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .submissions-table td {
+            padding: 15px;
+            border-top: 1px solid #e1e5e9;
+        }
+
+        .submissions-table tbody tr {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .submissions-table tbody tr:hover {
+            background: var(--light);
+        }
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-submitted { background: #cfe2ff; color: #084298; }
+        .status-under_review { background: #fff3cd; color: #856404; }
+        .status-approved { background: #d1e7dd; color: #0a3622; }
+        .status-rejected { background: #f8d7da; color: #721c24; }
+        .status-bound { background: #d1e7dd; color: #0a3622; }
+        .status-active { background: #d1f2eb; color: #0c5340; }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 1200px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 2px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .detail-section {
+            margin-bottom: 30px;
+        }
+
+        .detail-section h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e1e5e9;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .detail-item label {
+            display: block;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .detail-item .value {
+            font-size: 1.1em;
+            color: #333;
+            font-weight: 500;
+        }
+
+        /* Report Frame */
+        .report-frame {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            background: white;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Alert */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.active {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d1e7dd;
+            color: #0a3622;
+            border-left: 4px solid var(--success);
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid var(--danger);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Download Link */
+        .download-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background: var(--info);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .download-link:hover {
+            background: #138496;
+        }
+
+        /* Action Buttons Container */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #e1e5e9;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <h1>🏛️ CME Capital Management</h1>
+                <p>Underwriter Portal - Policy Management System</p>
+            </div>
+            <div>
+                <button class="btn btn-secondary" onclick="refreshData()">🔄 Refresh</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Alerts -->
+        <div id="alertSuccess" class="alert alert-success"></div>
+        <div id="alertError" class="alert alert-error"></div>
+
+        <!-- Stats Dashboard -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="statTotal">0</div>
+                <div class="stat-label">Total Submissions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="statPending">0</div>
+                <div class="stat-label">Pending Review</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="statApproved">0</div>
+                <div class="stat-label">Approved</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="statBound">0</div>
+                <div class="stat-label">Bound Policies</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <label>Status</label>
+                <select id="filterStatus" onchange="applyFilters()">
+                    <option value="">All Statuses</option>
+                    <option value="submitted">Submitted</option>
+                    <option value="under_review">Under Review</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="bound">Bound</option>
+                    <option value="active">Active</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Search Company</label>
+                <input type="text" id="filterSearch" placeholder="Company name..." oninput="applyFilters()">
+            </div>
+            <div class="filter-group">
+                <label>Country</label>
+                <select id="filterCountry" onchange="applyFilters()">
+                    <option value="">All Countries</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Date From</label>
+                <input type="date" id="filterDateFrom" onchange="applyFilters()">
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading">
+            <div class="spinner"></div>
+            <p>Loading submissions...</p>
+        </div>
+
+        <!-- Submissions Table -->
+        <div id="submissionsContainer" class="submissions-container" style="display: none;">
+            <div class="table-header">
+                <h2>Submissions</h2>
+                <span id="submissionCount">0 submissions</span>
+            </div>
+            <table class="submissions-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Company Name</th>
+                        <th>Country</th>
+                        <th>Broker</th>
+                        <th>Submitted</th>
+                        <th>Status</th>
+                        <th>Analysis</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="submissionsTableBody">
+                    <!-- Rows populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Submission Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Submission Details</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Company Information -->
+                <div class="detail-section">
+                    <h3>📋 Submission Information</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Company Name</label>
+                            <div class="value" id="detailCompanyName">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Obligor Country</label>
+                            <div class="value" id="detailCountry">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Submission Date</label>
+                            <div class="value" id="detailDate">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Current Status</label>
+                            <div class="value" id="detailStatus">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Broker</label>
+                            <div class="value" id="detailBroker">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Broker Company</label>
+                            <div class="value" id="detailBrokerCompany">-</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <label>Business Description</label>
+                        <div class="value" id="detailDescription" style="margin-top: 5px;">-</div>
+                    </div>
+                </div>
+
+                <!-- Documents -->
+                <div class="detail-section">
+                    <h3>📁 Financial Documents</h3>
+                    <a id="downloadZipLink" class="download-link" href="#" download>
+                        <span>📥</span>
+                        <span>Download Original ZIP File</span>
+                    </a>
+                </div>
+
+                <!-- AI Analysis Report -->
+                <div class="detail-section">
+                    <h3>🤖 AI Analysis Report</h3>
+                    <div id="reportSection">
+                        <div id="reportLoading" class="loading" style="display: none;">
+                            <div class="spinner"></div>
+                            <p>Generating analysis report...</p>
+                        </div>
+                        <div id="reportContainer" style="display: none;">
+                            <iframe id="reportFrame" class="report-frame"></iframe>
+                            <div style="margin-top: 10px;">
+                                <button class="btn btn-secondary" onclick="downloadReport()">💾 Save Report to Desktop</button>
+                            </div>
+                        </div>
+                        <div id="reportPlaceholder">
+                            <p style="color: #666; margin-bottom: 15px;">No analysis report generated yet.</p>
+                            <button class="btn btn-primary" onclick="generateReport()">
+                                🚀 Generate AI Analysis Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Underwriter Decision -->
+                <div class="detail-section">
+                    <h3>✍️ Underwriter Decision</h3>
+                    <div class="form-group">
+                        <label>Decision</label>
+                        <select id="decisionSelect">
+                            <option value="approved">✓ Approve</option>
+                            <option value="rejected">✗ Reject</option>
+                            <option value="pending_info">⏸ Pending Information</option>
+                            <option value="on_hold">⏳ On Hold</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Decision Notes</label>
+                        <textarea id="decisionNotes" placeholder="Enter your decision notes and rationale..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Internal Notes (Private)</label>
+                        <textarea id="internalNotes" placeholder="Private notes for internal use only..."></textarea>
+                    </div>
+                    <div class="detail-grid">
+                        <div class="form-group">
+                            <label>Approved Credit Limit (if approved)</label>
+                            <input type="number" id="approvedLimit" placeholder="e.g., 1000000">
+                        </div>
+                        <div class="form-group">
+                            <label>Approved Premium</label>
+                            <input type="number" id="approvedPremium" placeholder="e.g., 50000">
+                        </div>
+                        <div class="form-group">
+                            <label>Term (months)</label>
+                            <input type="number" id="approvedTerm" placeholder="e.g., 12">
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="saveDecision()">
+                            ✓ Save Decision
+                        </button>
+                        <button class="btn btn-secondary" onclick="closeModal()">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Policy Binding (if approved) -->
+                <div class="detail-section" id="bindingSection" style="display: none;">
+                    <h3>📜 Bind Policy</h3>
+                    <div class="detail-grid">
+                        <div class="form-group">
+                            <label>Policy Number *</label>
+                            <input type="text" id="policyNumber" placeholder="e.g., CME-2024-001234">
+                        </div>
+                        <div class="form-group">
+                            <label>Coverage Amount *</label>
+                            <input type="number" id="coverageAmount" placeholder="e.g., 2500000">
+                        </div>
+                        <div class="form-group">
+                            <label>Premium Amount *</label>
+                            <input type="number" id="premiumAmount" placeholder="e.g., 15000">
+                        </div>
+                        <div class="form-group">
+                            <label>Start Date *</label>
+                            <input type="date" id="startDate">
+                        </div>
+                        <div class="form-group">
+                            <label>End Date *</label>
+                            <input type="date" id="endDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Premium Frequency</label>
+                            <select id="premiumFrequency">
+                                <option value="Annual">Annual</option>
+                                <option value="Semi-Annual">Semi-Annual</option>
+                                <option value="Quarterly">Quarterly</option>
+                                <option value="Monthly">Monthly</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Special Conditions</label>
+                        <textarea id="specialConditions" placeholder="Any special terms or conditions..."></textarea>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="bindPolicy()">
+                            📜 Bind Policy
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const N8N_GENERATE_REPORT_WEBHOOK = 'YOUR_N8N_WORKFLOW_B_URL';
+
+        // Initialize Supabase
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Global state
+        let allSubmissions = [];
+        let currentSubmission = null;
+        let currentAnalysis = null;
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSubmissions();
+        });
+
+        // ============================================
+        // DATA LOADING
+        // ============================================
+        async function loadSubmissions() {
+            try {
+                const { data, error } = await supabase
+                    .from('submissions')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                allSubmissions = data || [];
+                updateStats();
+                populateFilters();
+                renderTable();
+                
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('submissionsContainer').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading submissions:', error);
+                showAlert('Failed to load submissions: ' + error.message, 'error');
+                document.getElementById('loadingState').style.display = 'none';
+            }
+        }
+
+        function updateStats() {
+            const stats = {
+                total: allSubmissions.length,
+                pending: allSubmissions.filter(s => s.status === 'submitted' || s.status === 'under_review').length,
+                approved: allSubmissions.filter(s => s.status === 'approved').length,
+                bound: allSubmissions.filter(s => s.status === 'bound' || s.status === 'active').length
+            };
+
+            document.getElementById('statTotal').textContent = stats.total;
+            document.getElementById('statPending').textContent = stats.pending;
+            document.getElementById('statApproved').textContent = stats.approved;
+            document.getElementById('statBound').textContent = stats.bound;
+        }
+
+        function populateFilters() {
+            const countries = [...new Set(allSubmissions.map(s => s.obligor_country))].sort();
+            const countrySelect = document.getElementById('filterCountry');
+            
+            countries.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country;
+                option.textContent = country;
+                countrySelect.appendChild(option);
+            });
+        }
+
+        // ============================================
+        // TABLE RENDERING
+        // ============================================
+        function renderTable(submissions = allSubmissions) {
+            const tbody = document.getElementById('submissionsTableBody');
+            tbody.innerHTML = '';
+
+            if (submissions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 40px; color: #666;">
+                            No submissions found
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('submissionCount').textContent = '0 submissions';
+                return;
+            }
+
+            submissions.forEach(submission => {
+                const row = document.createElement('tr');
+                row.onclick = () => openModal(submission);
+                
+                const statusClass = `status-${submission.status.replace(' ', '_')}`;
+                const statusText = submission.status.replace('_', ' ').toUpperCase();
+                
+                row.innerHTML = `
+                    <td>#${submission.id}</td>
+                    <td><strong>${submission.company_name}</strong></td>
+                    <td>${submission.obligor_country}</td>
+                    <td>${submission.broker_name || submission.broker_email || 'N/A'}</td>
+                    <td>${new Date(submission.created_at).toLocaleDateString()}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td>${submission.status === 'under_review' ? '✓' : '—'}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="event.stopPropagation(); openModal(${JSON.stringify(submission).replace(/"/g, '&quot;')})">
+                            View
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('submissionCount').textContent = `${submissions.length} submission${submissions.length !== 1 ? 's' : ''}`;
+        }
+
+        // ============================================
+        // FILTERS
+        // ============================================
+        function applyFilters() {
+            const statusFilter = document.getElementById('filterStatus').value;
+            const searchFilter = document.getElementById('filterSearch').value.toLowerCase();
+            const countryFilter = document.getElementById('filterCountry').value;
+            const dateFilter = document.getElementById('filterDateFrom').value;
+
+            let filtered = allSubmissions;
+
+            if (statusFilter) {
+                filtered = filtered.filter(s => s.status === statusFilter);
+            }
+
+            if (searchFilter) {
+                filtered = filtered.filter(s => 
+                    s.company_name.toLowerCase().includes(searchFilter)
+                );
+            }
+
+            if (countryFilter) {
+                filtered = filtered.filter(s => s.obligor_country === countryFilter);
+            }
+
+            if (dateFilter) {
+                filtered = filtered.filter(s => 
+                    new Date(s.created_at) >= new Date(dateFilter)
+                );
+            }
+
+            renderTable(filtered);
+        }
+
+        // ============================================
+        // MODAL FUNCTIONS
+        // ============================================
+        async function openModal(submission) {
+            currentSubmission = submission;
+            
+            document.getElementById('modalTitle').textContent = `Submission #${submission.id}`;
+            document.getElementById('detailCompanyName').textContent = submission.company_name;
+            document.getElementById('detailCountry').textContent = submission.obligor_country;
+            document.getElementById('detailDate').textContent = new Date(submission.created_at).toLocaleString();
+            document.getElementById('detailStatus').innerHTML = `<span class="status-badge status-${submission.status.replace('_', '-')}">${submission.status.replace('_', ' ').toUpperCase()}</span>`;
+            document.getElementById('detailDescription').textContent = submission.description || 'No description provided';
+            document.getElementById('detailBroker').textContent = submission.broker_name || 'N/A';
+            document.getElementById('detailBrokerCompany').textContent = submission.broker_company || 'N/A';
+            
+            // Set download link
+            document.getElementById('downloadZipLink').href = submission.zip_file_url;
+            
+            // Check if analysis exists
+            await loadAnalysis(submission.id);
+            
+            // Show/hide binding section based on status
+            document.getElementById('bindingSection').style.display = 
+                submission.status === 'approved' ? 'block' : 'none';
+            
+            document.getElementById('detailModal').classList.add('active');
+        }
+
+        async function loadAnalysis(submissionId) {
+            try {
+                const { data, error } = await supabase
+                    .from('submissions_analysis')
+                    .select('*')
+                    .eq('submission_id', submissionId)
+                    .single();
+
+                if (data && data.ai_report_url) {
+                    currentAnalysis = data;
+                    document.getElementById('reportContainer').style.display = 'block';
+                    document.getElementById('reportPlaceholder').style.display = 'none';
+                    document.getElementById('reportFrame').src = data.ai_report_url;
+                } else {
+                    document.getElementById('reportContainer').style.display = 'none';
+                    document.getElementById('reportPlaceholder').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading analysis:', error);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('active');
+            currentSubmission = null;
+            currentAnalysis = null;
+        }
+
+        // ============================================
+        // GENERATE REPORT
+        // ============================================
+        async function generateReport() {
+            if (!currentSubmission) return;
+
+            const loadingDiv = document.getElementById('reportLoading');
+            const placeholderDiv = document.getElementById('reportPlaceholder');
+            
+            loadingDiv.style.display = 'block';
+            placeholderDiv.style.display = 'none';
+
+            try {
+                const response = await fetch(N8N_GENERATE_REPORT_WEBHOOK, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        submission_id: currentSubmission.id
+                    })
+                });
+
+                if (!response.ok) throw new Error('Report generation failed');
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentAnalysis = result;
+                    document.getElementById('reportContainer').style.display = 'block';
+                    document.getElementById('reportFrame').src = result.report_url;
+                    showAlert('Analysis report generated successfully!', 'success');
+                    await loadSubmissions();
+                } else {
+                    throw new Error(result.message || 'Generation failed');
+                }
+            } catch (error) {
+                console.error('Error generating report:', error);
+                showAlert('Failed to generate report: ' + error.message, 'error');
+                placeholderDiv.style.display = 'block';
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        function downloadReport() {
+            if (!currentAnalysis || !currentAnalysis.report_url) return;
+            
+            const link = document.createElement('a');
+            link.href = currentAnalysis.report_url;
+            link.download = `analysis_${currentSubmission.company_name}_${new Date().toISOString().split('T')[0]}.html`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // ============================================
+        // SAVE DECISION
+        // ============================================
+        async function saveDecision() {
+            if (!currentSubmission) return;
+
+            const decision = document.getElementById('decisionSelect').value;
+            const notes = document.getElementById('decisionNotes').value;
+            const internalNotes = document.getElementById('internalNotes').value;
+            const approvedLimit = document.getElementById('approvedLimit').value;
+            const approvedPremium = document.getElementById('approvedPremium').value;
+            const approvedTerm = document.getElementById('approvedTerm').value;
+
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px; margin: 0 auto;"></div>';
+
+            try {
+                // Insert decision record
+                const { data: decisionData, error: decisionError } = await supabase
+                    .from('underwriter_decisions')
+                    .insert({
+                        submission_id: currentSubmission.id,
+                        decision: decision,
+                        notes: notes,
+                        internal_notes: internalNotes,
+                        approved_credit_limit: approvedLimit ? parseFloat(approvedLimit) : null,
+                        approved_premium: approvedPremium ? parseFloat(approvedPremium) : null,
+                        approved_term_months: approvedTerm ? parseInt(approvedTerm) : null,
+                        underwriter_email: 'underwriter@cme.com', // You can add login later
+                        underwriter_name: 'CME Underwriter'
+                    });
+
+                if (decisionError) throw decisionError;
+
+                // Update submission status
+                const newStatus = decision === 'approved' ? 'approved' : 
+                                  decision === 'rejected' ? 'rejected' : 'under_review';
+
+                const { error: statusError } = await supabase
+                    .from('submissions')
+                    .update({ status: newStatus })
+                    .eq('id', currentSubmission.id);
+
+                if (statusError) throw statusError;
+
+                showAlert('Decision saved successfully!', 'success');
+                await loadSubmissions();
+                
+                // Show binding section if approved
+                if (decision === 'approved') {
+                    document.getElementById('bindingSection').style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('Error saving decision:', error);
+                showAlert('Failed to save decision: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // ============================================
+        // BIND POLICY
+        // ============================================
+        async function bindPolicy() {
+            if (!currentSubmission) return;
+
+            const policyNumber = document.getElementById('policyNumber').value;
+            const coverageAmount = document.getElementById('coverageAmount').value;
+            const premiumAmount = document.getElementById('premiumAmount').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const premiumFrequency = document.getElementById('premiumFrequency').value;
+            const specialConditions = document.getElementById('specialConditions').value;
+
+            if (!policyNumber || !coverageAmount || !premiumAmount || !startDate || !endDate) {
+                showAlert('Please fill in all required fields', 'error');
+                return;
+            }
+
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = 'Processing...';
+
+            try {
+                // Insert policy binding
+                const { data, error } = await supabase
+                    .from('policy_bindings')
+                    .insert({
+                        submission_id: currentSubmission.id,
+                        policy_number: policyNumber,
+                        insured_company: currentSubmission.company_name,
+                        coverage_amount: parseFloat(coverageAmount),
+                        premium_amount: parseFloat(premiumAmount),
+                        premium_frequency: premiumFrequency,
+                        start_date: startDate,
+                        end_date: endDate,
+                        policy_status: 'active',
+                        special_conditions: specialConditions,
+                        bound_by_email: 'underwriter@cme.com',
+                        bound_by_name: 'CME Underwriter',
+                        premium_outstanding: parseFloat(premiumAmount)
+                    });
+
+                if (error) throw error;
+
+                // Update submission status to bound
+                await supabase
+                    .from('submissions')
+                    .update({ status: 'bound' })
+                    .eq('id', currentSubmission.id);
+
+                showAlert('Policy bound successfully!', 'success');
+                await loadSubmissions();
+                closeModal();
+                
+            } catch (error) {
+                console.error('Error binding policy:', error);
+                showAlert('Failed to bind policy: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        function refreshData() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('submissionsContainer').style.display = 'none';
+            loadSubmissions();
+        }
+
+        function showAlert(message, type) {
+            const alertId = type === 'success' ? 'alertSuccess' : 'alertError';
+            const alert = document.getElementById(alertId);
+            alert.textContent = message;
+            alert.classList.add('active');
+
+            setTimeout(() => {
+                alert.classList.remove('active');
+            }, 5000);
+        }
+
+        // Close modal on outside click
+        document.getElementById('detailModal').addEventListener('click', (e) => {
+            if (e.target.id === 'detailModal') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
